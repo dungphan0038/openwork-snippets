@@ -1,0 +1,143 @@
+// ============================================================
+//  📐 KaTeX Renderer — Render LaTeX Math trong OpenWork
+//  Tự động phát hiện & render công thức $...$ và $$...$$
+//  Dùng KaTeX CDN (nhẹ, nhanh hơn MathJax)
+// ============================================================
+
+(function() {
+  const KATEX_VERSION = '0.16.11';
+  const ATTR_DONE = 'data-kr-processed';
+
+  // ─── 1. Style cho công thức ────────────────────────────────
+  const style = document.createElement('style');
+  style.textContent = `
+    .katex { font-size: 1.05em; }
+    .katex-display { margin: 0.5em 0; overflow-x: auto; overflow-y: hidden; }
+    .kr-error {
+      display: inline-block;
+      color: #ff5252;
+      background: rgba(255,82,82,0.1);
+      padding: 0 4px;
+      border-radius: 4px;
+      font-style: italic;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // ─── 2. Load KaTeX CSS + JS từ CDN ────────────────────────
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VERSION}/dist/katex.min.css`;
+  document.head.appendChild(link);
+
+  const script = document.createElement('script');
+  script.src = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VERSION}/dist/katex.min.js`;
+  script.onload = () => {
+    console.log('✅ KaTeX loaded — rendering math…');
+    renderAll();
+  };
+  script.onerror = () => console.warn('⚠️ KaTeX failed to load — check internet');
+  document.head.appendChild(script);
+
+  // ─── 3. Hàm render ────────────────────────────────────────
+  const DISPLAY_RE = /\$\$([\s\S]*?)\$\$/g;
+  const INLINE_RE  = /(?<!\$)\$([^\s$][^$]*?[^\s$])\$(?!\$)/g;
+
+  function renderNode(el) {
+    if (el.hasAttribute(ATTR_DONE) || !el.innerHTML) return;
+
+    let html = el.innerHTML;
+
+    // $$...$$ display math
+    if (html.includes('$$')) {
+      html = html.replace(DISPLAY_RE, (_, expr) => {
+        try {
+          return window.katex.renderToString(expr.trim(), { displayMode: true, throwOnError: false });
+        } catch {
+          return `<span class="kr-error">$$${expr}$$</span>`;
+        }
+      });
+    }
+
+    // $...$ inline math (không chạm vào $$)
+    if (html.includes('$')) {
+      html = html.replace(INLINE_RE, (_, expr) => {
+        try {
+          return window.katex.renderToString(expr.trim(), { displayMode: false, throwOnError: false });
+        } catch {
+          return `<span class="kr-error">$${expr}$</span>`;
+        }
+      });
+    }
+
+    if (html !== el.innerHTML) {
+      el.innerHTML = html;
+    }
+    el.setAttribute(ATTR_DONE, 'true');
+  }
+
+  function renderAll() {
+    if (!window.katex) return;
+
+    // Các selector thường chứa message trong OpenWork
+    const selectors = [
+      '[class*="message-content"]',
+      '[class*="chat-message"]',
+      'main p',
+      'article p',
+      '[class*="response"]',
+      '.markdown-body p',
+      '[class*="prose"] p',
+    ];
+
+    for (const sel of selectors) {
+      document.querySelectorAll(`${sel}:not([${ATTR_DONE}])`).forEach(renderNode);
+    }
+
+    // Fallback: element nào chứa $ mà chưa xử lý
+    document.querySelectorAll(`:not([${ATTR_DONE}])`).forEach(el => {
+      if (el.children.length === 0 && el.textContent?.includes('$')) {
+        renderNode(el);
+      }
+    });
+  }
+
+  // ─── 4. Chạy khi load xong ─────────────────────────────────
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    // will run when katex script onload fires
+  } else {
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.katex) renderAll();
+    });
+  }
+
+  // ─── 5. MutationObserver — bắt message mới ────────────────
+  const observer = new MutationObserver(() => {
+    if (window.katex) renderAll();
+  });
+  if (document.body) {
+    observer.observe(document.body, { childList: true, subtree: true });
+  } else {
+    document.addEventListener('DOMContentLoaded', () => {
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
+  }
+
+  // ─── 6. Retry nếu chưa load kịp ──────────────────────────
+  let retries = 0;
+  const interval = setInterval(() => {
+    if (window.katex) { clearInterval(interval); renderAll(); return; }
+    if (++retries > 30) clearInterval(interval); // 15s timeout
+  }, 500);
+
+  console.log('📐 KaTeX Renderer snippet đã sẵn sàng!');
+})();
+
+// ============================================================
+//  📝 Cách dùng:
+//    1. Mở OpenWork → Ctrl+Shift+I → Console
+//    2. Paste toàn bộ đoạn trên → Enter
+//    3. Công thức $x^2 + y^2 = z^2$ sẽ render đẹp!
+//
+//  Hoặc dùng Snippet Editor của OpenWork để inject tự động.
+// ============================================================
