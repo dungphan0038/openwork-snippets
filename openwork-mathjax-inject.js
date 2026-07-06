@@ -61,15 +61,15 @@
       scale: 1.0,
     },
     startup: {
-      typeset: true,
-      pageReady: function () {
-        console.log('[MathJax] Ready!');
-        return window.MathJax.typeset();
+      typeset: false,
+      ready: function () {
+        MathJax.startup.defaultReady();
+        console.log('[MathJax] Ready! (auto-typeset disabled)');
       },
     },
   };
 
-  // ─── Helper: convert $$ \[ \] ────────────────────────
+  // ─── Helper: convert $$ → \[ \] ────────────────────────
   function preprocessDisplayMath(html) {
     return html.replace(/\$\$([\s\S]+?)\$\$/g, function (m, tex) {
       return '\\[' + tex.trim() + '\\]';
