@@ -61,10 +61,10 @@
       scale: 1.0,
     },
     startup: {
-      typeset: false,
-      ready: function () {
-        MathJax.startup.defaultReady();
-        console.log('[MathJax] Ready! (auto-typeset disabled)');
+      typeset: true,
+      pageReady: function () {
+        console.log('[MathJax] Ready!');
+        return window.MathJax.typeset();
       },
     },
   };
