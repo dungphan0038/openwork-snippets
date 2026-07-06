@@ -37,9 +37,6 @@ Makes OpenWork display proper math notation using MathJax 3:
 
 **Known limitation:** `\begin{cases}...`, `\begin{vmatrix}...` and similar multi-line environments collapse to a single line. The workaround handles all other standard LaTeX (integrals, sums, fractions, aligned equations, etc.) well.
 
-### `katex-renderer.txt` *(removed)*
-Replaced by `openwork-mathjax-inject.js` — MathJax provides better coverage of LaTeX features (AMS environments, `\tag`, etc.).
-
 ## Why This Repo?
 
 - Keep track of changes over time.
